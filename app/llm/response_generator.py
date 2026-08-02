@@ -1,15 +1,13 @@
 from app.llm.anthropic_client import AnthropicClient
-from app.llm.prompts import (
-    SYSTEM_PROMPT,
-    USER_PROMPT_TEMPLATE,
-)
+from app.llm.prompts import SYSTEM_PROMPT
 
-from app.models.response import Response
 from app.rag.retrieve import Retriever
+from app.models.response import Response
 
 class ResponseGenerator:
     """
-    Coordinates retrieval, prompting, and LLM generation.
+    Generates final AI responses using retrieved user stories
+    and the Anthropic LLM.
     """
 
     def __init__(self):
@@ -18,78 +16,77 @@ class ResponseGenerator:
 
     def generate(
         self,
-        query: str,
+        question: str,
     ) -> Response:
         """
-        Generate a structured response for an engineer.
+        Retrieve relevant stories and ask Claude
+        to recommend the best task.
         """
 
         stories = self.retriever.retrieve(
-            query=query
+            query=question,
+            top_k=3,
         )
 
-        if not stories:
-            return Response(
-                story_title="No matching story found",
-                acceptance_criteria="",
-                notes=(
-                    "No relevant user stories were found. "
-                    "Try providing more details."
-                ),
-            )
-
-        best_story = stories[0]
-
-        context = "\n\n".join(
-            [
-                story["document"]
-                for story in stories
-            ]
+        context = self._format_context(
+            stories
         )
 
-        user_prompt = USER_PROMPT_TEMPLATE.format(
-            query=query,
-            context=context,
-        )
-
-        notes = self.client.generate(
+        answer = self.client.generate(
             system_prompt=SYSTEM_PROMPT,
-            user_prompt=user_prompt,
+            user_prompt=f"""
+Engineer request:
+
+{question}
+
+
+Available user stories:
+
+{context}
+
+
+Choose the most appropriate story for the engineer.
+Return:
+
+Story Title:
+Acceptance Criteria:
+Notes:
+""",
         )
 
-        metadata = best_story["metadata"]
-
-        return Response(
-            story_title=metadata.get(
-                "title",
-                "Unknown",
-            ),
-            acceptance_criteria=self._extract_acceptance_criteria(
-                best_story["document"]
-            ),
-            notes=notes,
+        return self._parse_response(
+            answer
         )
 
-    def _extract_acceptance_criteria(
+    def _format_context(
         self,
-        document: str,
+        stories: list[dict],
     ) -> str:
         """
-        Extract acceptance criteria from the stored document.
-
-        Temporary implementation.
-        Later this can be replaced with structured metadata.
+        Convert retrieved stories into LLM context.
         """
 
-        marker = "Acceptance Criteria:"
+        formatted = []
 
-        if marker not in document:
-            return ""
+        for story in stories:
+            formatted.append(
+                story["document"]
+            )
 
-        return document.split(
-            marker,
-            1
-        )[1].split(
-            "Feature:",
-            1
-        )[0].strip()
+        return "\n\n".join(formatted)
+
+    def _parse_response(
+        self,
+        text: str,
+    ) -> Response:
+        """
+        Temporary parser.
+
+        Later we can use structured output.
+        """
+
+        return Response(
+            story_title=text,
+            acceptance_criteria="",
+            notes="",
+        )

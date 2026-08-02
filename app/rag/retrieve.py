@@ -1,6 +1,5 @@
 from app.rag.embeddings import EmbeddingGenerator
 from app.rag.vector_store import VectorStore
-from app.config import settings
 
 class Retriever:
     """
@@ -14,18 +13,11 @@ class Retriever:
     def retrieve(
         self,
         query: str,
-        top_k: int | None = None,
+        top_k: int = 5,
     ) -> list[dict]:
         """
-        Retrieve the most relevant user stories.
-
-        Returns raw search results from the vector store.
-        A higher-level component will convert these into
-        final responses.
+        Retrieve relevant user stories.
         """
-
-        if top_k is None:
-            top_k = settings.top_k
 
         query_embedding = self.embedding_generator.embed_query(
             query
@@ -36,34 +28,17 @@ class Retriever:
             top_k=top_k,
         )
 
-        return self._format_results(results)
+        stories = []
 
-    def _format_results(
-        self,
-        results: dict,
-    ) -> list[dict]:
-        """
-        Convert Chroma's response format into
-        a cleaner structure.
-        """
-
-        formatted = []
-
-        documents = results.get("documents", [[]])[0]
-        metadata = results.get("metadatas", [[]])[0]
-        distances = results.get("distances", [[]])[0]
-
-        for document, meta, distance in zip(
-            documents,
-            metadata,
-            distances,
+        for index, document in enumerate(
+            results["documents"][0]
         ):
-            formatted.append(
+            stories.append(
                 {
                     "document": document,
-                    "metadata": meta,
-                    "similarity_score": distance,
+                    "metadata": results["metadatas"][0][index],
+                    "distance": results["distances"][0][index],
                 }
             )
 
-        return formatted
+        return stories

@@ -1,84 +1,82 @@
-from app.models.user_story import UserStory
+from data.mock_user_stories import USER_STORIES
+
 from app.rag.embeddings import EmbeddingGenerator
 from app.rag.vector_store import VectorStore
 
-class IngestPipeline:
+
+def story_to_text(story):
     """
-    Pipeline for converting UserStory objects into
-    searchable vector documents.
+    Convert a UserStory object into searchable text.
     """
 
-    def __init__(self):
-        self.embedding_generator = EmbeddingGenerator()
-        self.vector_store = VectorStore()
+    return f"""
+Title:
+{story.title}
 
-    def _create_document(self, story: UserStory) -> str:
-        """
-        Converts a UserStory into text for embedding.
+Description:
+{story.description}
 
-        The embedding model only understands text, so we combine
-        the important fields into a searchable document.
-        """
+Acceptance Criteria:
+{story.acceptance_criteria}
 
-        return f"""
-        Title:
-        {story.title}
+Feature:
+{story.feature}
 
-        Description:
-        {story.description}
+Priority:
+{story.priority}
 
-        Acceptance Criteria:
-        {story.acceptance_criteria}
+Status:
+{story.status}
+"""
 
-        Feature:
-        {story.feature}
 
-        Priority:
-        {story.priority}
+def ingest():
+    """
+    Load user stories into ChromaDB.
+    """
 
-        Status:
-        {story.status}
-        """
+    embedding_generator = EmbeddingGenerator()
+    vector_store = VectorStore()
 
-    def ingest(
-        self,
-        stories: list[UserStory]
-    ) -> None:
-        """
-        Stores UserStories in the vector database.
-        """
+    documents = []
+    ids = []
+    metadatas = []
 
-        documents = []
-        embeddings = []
-        ids = []
-        metadata = []
+    for index, story in enumerate(USER_STORIES):
 
-        for index, story in enumerate(stories):
-
-            document = self._create_document(story)
-            documents.append(document)
-
-            ids.append(
-                f"story-{index}"
-            )
-
-            metadata.append(
-                {
-                    "title": story.title,
-                    "story_url": story.story_url,
-                    "feature": story.feature,
-                    "priority": story.priority,
-                    "status": story.status,
-                }
-            )
-
-        embeddings = self.embedding_generator.embed_documents(
-            documents
+        documents.append(
+            story_to_text(story)
         )
 
-        self.vector_store.add(
-            ids=ids,
-            documents=documents,
-            embeddings=embeddings,
-            metadatas=metadata,
+        ids.append(
+            f"story_{index}"
         )
+
+        metadatas.append(
+            {
+                "title": story.title,
+                "story_url": story.story_url,
+                "feature": story.feature,
+                "priority": story.priority,
+                "status": story.status,
+            }
+        )
+
+    embeddings = embedding_generator.embed_documents(
+        documents
+    )
+
+    vector_store.add(
+        ids=ids,
+        documents=documents,
+        embeddings=embeddings,
+        metadatas=metadatas,
+    )
+
+    print(
+        f"Ingested {len(documents)} user stories."
+    )
+
+
+if __name__ == "__main__":
+    ingest()
