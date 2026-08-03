@@ -1,5 +1,6 @@
 from anthropic import Anthropic
 from app.config import settings
+from app.models import response
 
 class AnthropicClient:
     """
@@ -42,4 +43,5 @@ class AnthropicClient:
             ],
         )
 
-        return response.content[0].text
+        print(response.content)
+        return str(response.content)

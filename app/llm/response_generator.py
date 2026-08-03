@@ -4,23 +4,27 @@ from app.llm.prompts import SYSTEM_PROMPT
 from app.rag.retrieve import Retriever
 from app.models.response import Response
 
+from app.mcp.tools.testing_guidance import TestingGuidanceTool
+
+
 class ResponseGenerator:
     """
-    Generates final AI responses using retrieved user stories
-    and the Anthropic LLM.
+    Generates final AI responses using retrieved user stories,
+    Anthropic, and supporting tools.
     """
 
     def __init__(self):
         self.client = AnthropicClient()
         self.retriever = Retriever()
+        self.testing_tool = TestingGuidanceTool()
 
     def generate(
         self,
         question: str,
     ) -> Response:
         """
-        Retrieve relevant stories and ask Claude
-        to recommend the best task.
+        Retrieve relevant stories, generate implementation guidance,
+        and generate testing scenarios.
         """
 
         stories = self.retriever.retrieve(
@@ -28,11 +32,22 @@ class ResponseGenerator:
             top_k=3,
         )
 
-        context = self._format_context(
-            stories
-        )
+        if not stories:
+            return Response(
+                story_title="No matching story found",
+                story_url="",
+                feature="",
+                priority="",
+                acceptance_criteria="",
+                notes="No stories matched the request.",
+                testing_scenarios="",
+            )
 
-        answer = self.client.generate(
+        best_story = stories[0]
+
+        metadata = best_story["metadata"]
+
+        notes = self.client.generate(
             system_prompt=SYSTEM_PROMPT,
             user_prompt=f"""
 Engineer request:
@@ -40,53 +55,37 @@ Engineer request:
 {question}
 
 
-Available user stories:
+Recommended user story:
 
-{context}
+{best_story["document"]}
 
 
-Choose the most appropriate story for the engineer.
-Return:
+Explain:
 
-Story Title:
-Acceptance Criteria:
-Notes:
+1. Why this story is the best choice.
+2. Where the engineer should begin.
+3. Important implementation considerations.
 """,
         )
 
-        return self._parse_response(
-            answer
+        testing_scenarios = self.testing_tool.generate_scenarios(
+            title=metadata["title"],
+            description=best_story["document"],
+            acceptance_criteria=metadata.get(
+                "acceptance_criteria",
+                "",
+            ),
         )
 
-    def _format_context(
-        self,
-        stories: list[dict],
-    ) -> str:
-        """
-        Convert retrieved stories into LLM context.
-        """
-
-        formatted = []
-
-        for story in stories:
-            formatted.append(
-                story["document"]
-            )
-
-        return "\n\n".join(formatted)
-
-    def _parse_response(
-        self,
-        text: str,
-    ) -> Response:
-        """
-        Temporary parser.
-
-        Later we can use structured output.
-        """
-
         return Response(
-            story_title=text,
-            acceptance_criteria="",
-            notes="",
+            story_title=metadata["title"],
+            story_url=metadata["story_url"],
+            feature=metadata["feature"],
+            priority=metadata["priority"],
+            acceptance_criteria=metadata.get(
+                "acceptance_criteria",
+                "",
+            ),
+            notes=notes,
+            testing_scenarios=testing_scenarios,
         )

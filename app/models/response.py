@@ -8,3 +8,4 @@ class Response:
     priority: str
     acceptance_criteria: str
     notes: str
+    testing_scenarios: str

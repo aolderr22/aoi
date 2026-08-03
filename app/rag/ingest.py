@@ -1,4 +1,4 @@
-from data.mock_user_stories import USER_STORIES
+from data.documents.user_stories import USER_STORIES
 
 from app.rag.embeddings import EmbeddingGenerator
 from app.rag.vector_store import VectorStore
@@ -38,6 +38,9 @@ def ingest():
     embedding_generator = EmbeddingGenerator()
     vector_store = VectorStore()
 
+    # Delete old vectors
+    vector_store.delete_all()
+
     documents = []
     ids = []
     metadatas = []
@@ -59,6 +62,7 @@ def ingest():
                 "feature": story.feature,
                 "priority": story.priority,
                 "status": story.status,
+                "acceptance_criteria": story.acceptance_criteria,
             }
         )
 

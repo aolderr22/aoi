@@ -1,51 +1,53 @@
 from app.models.user_story import UserStory
 
-mock_stories = [
+USER_STORIES = [
     UserStory(
-        title="Update HCO_ID references",
-        story_url="https://jira.example.com/AI-101",
+        title="YTD Excel File | Generate Excel Document and Add Button",
+        story_url="https://dev.azure.com/Vizientinc/CDBSLA/_boards/board/t/Questers/Stories?System.IterationPath=%40currentIteration&workitem=1266130",
         description=(
-            "Update every database table that references HCO_ID "
-            "to support the new identifier format."
+            "As a user, I want the system to generate an Excel document containing my YTD data in the approved QA Progress (Tabs Summary and Metric Detail) format so that I can review, share, and analyze the information outside the application.\n\n"
+            "As a user, I want an Excel download button on the YTD view so that I can initiate the download of the YTD QA Progress workbook."
         ),
         acceptance_criteria=(
-            "- All referencing tables updated\n"
-            "- Unit tests pass\n"
-            "- No foreign key violations"
+            "AC1 – Generate Excel Document\n"
+            "GIVEN the user has initiated the YTD Excel download\n"
+            "WHEN the system processes the request\n"
+            "THEN the system generates an Excel document containing the user’s YTD data.\n\n"
+
+            "AC2 – Match Approved Excel Template\n"
+            "GIVEN the system is generating the Excel document\n"
+            "WHEN the document is created\n"
+            "THEN its worksheets, columns, headings, layout, and formatting match the provided QAProgress_YTD_MedicareID_CohortShortName.xlsx example.\n\n"
+
+            "AC3 – Populate YTD Data\n"
+            "GIVEN the Excel document is being generated\n"
+            "WHEN YTD data is available for the user\n"
+            "THEN the system populates the applicable fields in the document with the user’s YTD data.\n\n"
+
+            "AC4 – Preserve Data Types and Formatting\n"
+            "GIVEN the document contains text, dates, percentages, scores, or numeric values\n"
+            "WHEN the data is written to the Excel document\n"
+            "THEN each value uses the corresponding data type, number format, and presentation shown in the approved example.\n\n"
+
+            "AC6 – Handle Missing Data\n"
+            "GIVEN a field included in the approved template has no corresponding YTD data\n"
+            "WHEN the document is generated\n"
+            "THEN the field shall be displayed exactly as shown in UI\n\n"
+
+            "AC7 – Create Valid Excel File\n"
+            "GIVEN the system has completed document generation\n"
+            "WHEN the file is prepared for download\n"
+            "THEN the document is a valid .xlsx file that can be opened in supported spreadsheet applications without an error or repair warning.\n\n"
+
+            "AC8 – Apply File Naming Convention\n"
+            "GIVEN the Excel document has been generated successfully\n"
+            "WHEN it is provided for download\n"
+            "THEN the filename follows the approved naming convention based on QAProgress_YTD_MedicareID.xlsx, with the applicable Medicare ID or facility identifier included.\n\n"
+
+            "AC9 - Add hover over for the download icon that displays \"Download Excel\""
         ),
-        feature="Member Management",
+        feature="YTD Excel",
         priority="High",
-        status="Ready for Development",
-    ),
-    UserStory(
-        title="Refactor PDF generation service",
-        story_url="https://jira.example.com/AI-102",
-        description=(
-            "Refactor the PDF generation module to improve "
-            "maintainability and reduce duplication."
-        ),
-        acceptance_criteria=(
-            "- Existing PDFs remain unchanged\n"
-            "- Code coverage above 90%\n"
-            "- Performance is not degraded"
-        ),
-        feature="Document Services",
-        priority="Medium",
-        status="Ready for Development",
-    ),
-    UserStory(
-        title="Implement audit logging for user updates",
-        story_url="https://jira.example.com/AI-103",
-        description=(
-            "Capture all user profile updates in the audit log."
-        ),
-        acceptance_criteria=(
-            "- Every update is logged\n"
-            "- Timestamp and user recorded\n"
-            "- Logs are searchable"
-        ),
-        feature="Security",
-        priority="High",
-        status="In Progress",
+        status="Active",
     ),
 ]

@@ -1,6 +1,7 @@
 import chromadb
 from app.config import settings
 
+
 class VectorStore:
     """
     Wrapper around ChromaDB.
@@ -8,13 +9,19 @@ class VectorStore:
     Responsible only for storing and retrieving vector embeddings.
     """
 
+    COLLECTION_NAME = "user_stories"
+
     def __init__(self):
         self.client = chromadb.PersistentClient(
             path=settings.vector_db_path
         )
 
-        self.collection = self.client.get_or_create_collection(
-            name="user_stories"
+    def _collection(self):
+        """
+        Always fetch the latest collection.
+        """
+        return self.client.get_or_create_collection(
+            name=self.COLLECTION_NAME
         )
 
     def add(
@@ -24,11 +31,8 @@ class VectorStore:
         embeddings: list[list[float]],
         metadatas: list[dict],
     ) -> None:
-        """
-        Add documents to the vector store.
-        """
 
-        self.collection.add(
+        self._collection().add(
             ids=ids,
             documents=documents,
             embeddings=embeddings,
@@ -40,24 +44,22 @@ class VectorStore:
         query_embedding: list[float],
         top_k: int = 5,
     ) -> dict:
-        """
-        Return the top matching documents.
-        """
 
-        return self.collection.query(
+        return self._collection().query(
             query_embeddings=[query_embedding],
             n_results=top_k,
         )
 
     def delete_all(self) -> None:
         """
-        Deletes every document from the collection.
-
-        Very useful while developing.
+        Recreate the collection from scratch.
         """
 
-        self.client.delete_collection("user_stories")
+        try:
+            self.client.delete_collection(self.COLLECTION_NAME)
+        except Exception:
+            pass
 
-        self.collection = self.client.get_or_create_collection(
-            name="user_stories"
+        self.client.get_or_create_collection(
+            name=self.COLLECTION_NAME
         )
