@@ -1,40 +1,33 @@
 import json
 import os
-from dotenv import load_dotenv
 
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
+from dotenv import load_dotenv
 
 def load_data():
+    """Download and parse the JSON data from Azure Blob Storage."""
     load_dotenv()
-    # Read configuration
-    account_url = os.environ["AZURE_STORAGE_ACCOUNT_URL"]
-    print(f"Loading data from Azure Blob Storage: {account_url}")
-    container_name = os.environ["AZURE_STORAGE_CONTAINER"]
-    blob_name = "characters/mock_characters.json"
 
-    # Authenticate using your existing az login
+    account_url = os.environ["AZURE_STORAGE_ACCOUNT_URL"]
+    container_name = os.environ["AZURE_STORAGE_CONTAINER"]
+    blob_name = os.getenv(["AZURE_STORAGE_BLOB_NAME"])
+
     credential = DefaultAzureCredential()
 
     try:
-        # Connect to Azure Blob Storage
         service = BlobServiceClient(
             account_url=account_url,
             credential=credential,
         )
 
-        # Download the JSON file
         blob = service.get_blob_client(
             container=container_name,
             blob=blob_name,
         )
 
         json_bytes = blob.download_blob().readall()
-
-        # Convert JSON into a Python object (usually a list or dict)
-        data = json.loads(json_bytes.decode("utf-8"))
-
-        return data
+        return json.loads(json_bytes.decode("utf-8"))
 
     finally:
         credential.close()
