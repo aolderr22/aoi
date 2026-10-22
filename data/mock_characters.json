@@ -1,0 +1,43 @@
+[{
+    "id": 0,
+    "name": "Olefer Greslund",
+    "position": "Supreme commander",
+    "personality": "Brave, strategic",
+    "gender": "Male"
+}, {
+    "id": 1,
+    "name": "Feernim Zatuuro",
+    "position": "Mini-spacecraft pilot",
+    "personality": "Shy but heroic, kind hearted",
+    "gender": "Non-binary"
+}, {
+    "id": 2,
+    "name": "Jonas Greslund",
+    "position": "Spacecraft architect",
+    "personality": "Inventive, detail-oriented",
+    "gender": "Male"
+}, {
+    "id": 3,
+    "name": "Nate Arziggio",
+    "position": "Supreme commander",
+    "personality": "Calm, assertive",
+    "gender": "Male"
+}, {
+    "id": 4,
+    "name": "Georgiy Krinlisov",
+    "position": "Entertainer",
+    "personality": "Goofy, cheerful",
+    "gender": "Male"
+}, {
+    "id": 5,
+    "name": "Kroznaar Evlon Bluurlu",
+    "position": "Fitness coach",
+    "personality": "Sporty, energetic, rough but caring",
+    "gender": "Non-binary"
+}, {
+    "id": 6,
+    "name": "Zeenula Pelphegopoulos",
+    "position": "Heroine",
+    "personality": "Courageous, compassionate",
+    "gender": "Female"
+}]
