@@ -11,7 +11,7 @@ def load_data():
 
     account_url = os.environ["AZURE_STORAGE_ACCOUNT_URL"]
     container_name = os.environ["AZURE_STORAGE_CONTAINER"]
-    blob_name = os.getenv(["AZURE_STORAGE_BLOB_NAME"])
+    blob_name = os.getenv("AZURE_STORAGE_BLOB_NAME")
 
     credential = DefaultAzureCredential()
 

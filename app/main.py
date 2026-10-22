@@ -96,3 +96,19 @@ def ask_question(request: AskRequest):
             status_code=502,
             detail="The AI service failed to generate an answer.",
         ) from exc
+
+
+@app.get("/characters")
+def list_characters():
+    data = app.state.characters
+
+    if isinstance(data, list):
+        return data
+
+    if isinstance(data, dict):
+        return data.get("characters", data)
+
+    raise HTTPException(
+        status_code=500,
+        detail="Character data has an unexpected format.",
+    )

@@ -10,3 +10,7 @@ class AskRequest(BaseModel):
 class AskResponse(BaseModel):
     question: str
     answer: str
+
+class HealthResponse(BaseModel):
+    status: str
+    data_records: int
