@@ -1,31 +1,33 @@
 import json
 
-def answer_question(openai_client, model_name, characters, question):
-    """Answer a question using the JSON data as model context."""
+def answer_question(openai_client, model_name, employees, question):
+    """Answer a question using the employee records as context."""
 
-    character_context = json.dumps(
-        characters,
+    employee_context = json.dumps(
+        employees,
         ensure_ascii=False,
         indent=2,
     )
 
-    prompt = f"""
-        You are a question-answering assistant.
-        
-        Answer the user's question using only the supplied JSON data.
-        If the data does not contain enough information, say so.
-        Do not invent character details.
-        
-        JSON DATA:
-        {character_context}
-        
-        USER QUESTION:
-        {question}
-        """
-
     response = openai_client.responses.create(
         model=model_name,
-        input=prompt,
+        input=[
+            {
+                "role": "system",
+                "content": (
+                    "Answer questions using the supplied employee "
+                    "records. If the records do not contain the "
+                    "answer, say so. Do not invent employee details."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Employee records:\n{employee_context}\n\n"
+                    f"Question: {question}"
+                ),
+            },
+        ],
     )
 
     return response.output_text

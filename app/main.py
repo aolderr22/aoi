@@ -1,15 +1,18 @@
 import logging
 import os
 from contextlib import asynccontextmanager
-
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-
 from app.ai_service import answer_question
 from app.azure_data import load_data
-from app.schemas import AskRequest, AskResponse, HealthResponse
+from app.schemas import (
+    AskRequest,
+    AskResponse,
+    Employee,
+    HealthResponse,
+)
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -17,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize Azure clients and load data at application startup."""
+    """Initialize Azure clients and load employee records."""
     project_endpoint = os.getenv("PROJECT_ENDPOINT")
     model_name = os.getenv("MODEL_NAME")
 
@@ -25,9 +28,7 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("PROJECT_ENDPOINT is missing from .env")
 
     if not model_name:
-        raise RuntimeError(
-            "Set MODEL_NAME or MODEL_DEPLOYMENT_NAME in .env"
-        )
+        raise RuntimeError("MODEL_NAME is missing from .env")
 
     credential = DefaultAzureCredential()
     project_client = None
@@ -40,37 +41,46 @@ async def lifespan(app: FastAPI):
 
         app.state.openai_client = project_client.get_openai_client()
         app.state.model_name = model_name
-        app.state.characters = load_data()
+        app.state.employees = [
+            Employee.model_validate(record)
+            for record in load_data()
+        ]
 
-        logger.info("Azure clients initialized and JSON data loaded.")
+        logger.info(
+            "Azure clients initialized; loaded %s employees.",
+            len(app.state.employees),
+        )
+
         yield
 
     finally:
         if project_client is not None:
             project_client.close()
-
         credential.close()
 
 app = FastAPI(
-    title="AOI Question Answering API",
-    description="Answers questions using JSON data in Azure Blob Storage.",
-    version="0.1.0",
+    title="AOI Employee API",
+    description="Employee data API backed by Azure Blob Storage.",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
 @app.get("/health", response_model=HealthResponse)
 def health_check():
-    data = app.state.characters
+    return HealthResponse(
+        status="ok",
+        data_records=len(app.state.employees),
+    )
 
-    if isinstance(data, (list, dict)):
-        record_count = len(data)
-    else:
-        record_count = 1
+@app.get(
+    "/employees",
+    name="list_employees",
+    response_model=list[Employee],
+)
+def list_employees():
+    """Return all employee records."""
+    return app.state.employees
 
-    return {
-        "status": "ok",
-        "data_records": record_count,
-    }
 
 @app.post("/ask", response_model=AskResponse)
 def ask_question(request: AskRequest):
@@ -78,7 +88,10 @@ def ask_question(request: AskRequest):
         answer = answer_question(
             openai_client=app.state.openai_client,
             model_name=app.state.model_name,
-            characters=app.state.characters,
+            employees=[
+                employee.model_dump()
+                for employee in app.state.employees
+            ],
             question=request.question,
         )
 
@@ -93,19 +106,3 @@ def ask_question(request: AskRequest):
             status_code=502,
             detail="The AI service failed to generate an answer.",
         ) from exc
-
-
-@app.get("/characters")
-def list_characters():
-    data = app.state.characters
-
-    if isinstance(data, list):
-        return data
-
-    if isinstance(data, dict):
-        return data.get("characters", data)
-
-    raise HTTPException(
-        status_code=500,
-        detail="Character data has an unexpected format.",
-    )
