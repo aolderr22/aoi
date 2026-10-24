@@ -21,6 +21,21 @@ def list_employees() -> str:
 
     return json.dumps(response.json(), ensure_ascii=False, indent=2)
 
+@mcp.tool()
+def recommend_employee(task: str) -> str:
+    """Find the best employee for a given task description."""
+    response = httpx.post(
+        f"{API_BASE_URL}/recommend-employee",
+        json={"task": task},
+        timeout=60.0,
+    )
+    response.raise_for_status()
+
+    return json.dumps(
+        response.json(),
+        ensure_ascii=False,
+        indent=2,
+    )
 
 if __name__ == "__main__":
     mcp.run(

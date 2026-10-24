@@ -16,3 +16,15 @@ class AskResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     data_records: int
+
+class RecommendEmployeeRequest(BaseModel):
+    task: str = Field(
+        min_length=1,
+        max_length=2000,
+        description="The task that needs an employee.",
+    )
+
+class EmployeeRecommendationResponse(BaseModel):
+    employee: Employee
+    reason: str
+    matched_skills: list[str]

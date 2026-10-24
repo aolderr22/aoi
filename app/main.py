@@ -5,14 +5,14 @@ from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from app.ai_service import answer_question
 from app.azure_data import load_data
 from app.schemas import (
-    AskRequest,
-    AskResponse,
     Employee,
     HealthResponse,
+    RecommendEmployeeRequest,
+    EmployeeRecommendationResponse,
 )
+from app.recommendation_service import recommend_employee
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -81,28 +81,24 @@ def list_employees():
     """Return all employee records."""
     return app.state.employees
 
-
-@app.post("/ask", response_model=AskResponse)
-def ask_question(request: AskRequest):
+@app.post(
+    "/recommend-employee",
+    response_model=EmployeeRecommendationResponse,
+)
+def recommend_employee_endpoint(request: RecommendEmployeeRequest):
     try:
-        answer = answer_question(
+        result = recommend_employee(
             openai_client=app.state.openai_client,
             model_name=app.state.model_name,
-            employees=[
-                employee.model_dump()
-                for employee in app.state.employees
-            ],
-            question=request.question,
+            employees=app.state.employees,
+            task=request.task,
         )
 
-        return AskResponse(
-            question=request.question,
-            answer=answer,
-        )
+        return result
 
     except Exception as exc:
-        logger.exception("Failed to generate an answer.")
+        logger.exception("Employee recommendation failed.")
         raise HTTPException(
             status_code=502,
-            detail="The AI service failed to generate an answer.",
+            detail="Could not generate an employee recommendation.",
         ) from exc
