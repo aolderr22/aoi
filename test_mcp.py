@@ -6,7 +6,6 @@ async def main():
     async with streamable_http_client("http://127.0.0.1:8001/mcp") as (
         read_stream,
         write_stream,
-        _,
     ):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
