@@ -19,10 +19,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Initialize Azure clients and load data at application startup."""
     project_endpoint = os.getenv("PROJECT_ENDPOINT")
-    model_name = (
-        os.getenv("MODEL_NAME")
-        or os.getenv("MODEL_DEPLOYMENT_NAME")
-    )
+    model_name = os.getenv("MODEL_NAME")
 
     if not project_endpoint:
         raise RuntimeError("PROJECT_ENDPOINT is missing from .env")
