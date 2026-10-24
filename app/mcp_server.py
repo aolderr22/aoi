@@ -1,25 +1,33 @@
 import json
+import os
 import httpx
 from mcp.server import MCPServer
 
 mcp = MCPServer("AOI Character Server")
-FASTAPI_CHARACTERS_URL = "http://127.0.0.1:8000/characters"
+
+API_BASE_URL = os.getenv(
+    "AOI_API_BASE_URL",
+    "http://127.0.0.1:8000",
+).rstrip("/")
 
 @mcp.tool()
 def list_characters() -> str:
-    """Retrieve all characters from the AOI character API."""
+    """Retrieve character records from the AOI FastAPI endpoint."""
 
-    response = httpx.get(
-        FASTAPI_CHARACTERS_URL,
-        timeout=20.0,
-    )
-    response.raise_for_status()
+    url = f"{API_BASE_URL}/characters"
 
-    return json.dumps(
-        response.json(),
-        ensure_ascii=False,
-        indent=2,
-    )
+    try:
+        response = httpx.get(url, timeout=20.0)
+        response.raise_for_status()
+        return json.dumps(
+            response.json(),
+            ensure_ascii=False,
+            indent=2,
+        )
+    except httpx.HTTPError as exc:
+        raise RuntimeError(
+            f"Could not retrieve characters from FastAPI: {exc}"
+        ) from exc
 
 if __name__ == "__main__":
     mcp.run(
