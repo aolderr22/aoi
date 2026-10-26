@@ -5,14 +5,15 @@ from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from app.azure_data import load_data
+from app.azure_data import (load_employee_data, load_task_data)
 from app.schemas import (
     Employee,
     HealthResponse,
     RecommendEmployeeRequest,
     EmployeeRecommendationResponse,
+    Task,
 )
-from app.recommendation_service import recommend_employee
+from app.recommendation_service import (recommend_employee, map_employees_to_tasks)
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -43,12 +44,18 @@ async def lifespan(app: FastAPI):
         app.state.model_name = model_name
         app.state.employees = [
             Employee.model_validate(record)
-            for record in load_data()
+            for record in load_employee_data()
+        ]
+
+        app.state.tasks = [
+            Task.model_validate(record)
+            for record in load_task_data()
         ]
 
         logger.info(
-            "Azure clients initialized; loaded %s employees.",
+            "Azure clients initialized; loaded %s employees and %s tasks.",
             len(app.state.employees),
+            len(app.state.tasks),
         )
 
         yield
@@ -70,6 +77,7 @@ def health_check():
     return HealthResponse(
         status="ok",
         data_records=len(app.state.employees),
+        task_records=len(app.state.tasks),
     )
 
 @app.get(
@@ -80,6 +88,15 @@ def health_check():
 def list_employees():
     """Return all employee records."""
     return app.state.employees
+
+@app.get(
+    "/tasks",
+    name="list_tasks",
+    response_model=list[Task],
+)
+def list_tasks():
+    """Return all task records."""
+    return app.state.tasks
 
 @app.post(
     "/recommend-employee",
@@ -102,3 +119,17 @@ def recommend_employee_endpoint(request: RecommendEmployeeRequest):
             status_code=502,
             detail="Could not generate an employee recommendation.",
         ) from exc
+
+@app.post(
+    "/map-employees-to-tasks",
+    response_model=str,
+)
+def map_employees_to_tasks_endpoint():
+    result = map_employees_to_tasks(
+        openai_client=app.state.openai_client,
+        model_name=app.state.model_name,
+        employees=app.state.employees,
+        tasks=app.state.tasks,
+    )
+
+    return result

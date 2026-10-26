@@ -6,6 +6,12 @@ class Employee(BaseModel):
     position: str
     skill_map: dict[str, str]
 
+class Task(BaseModel):
+    id: int
+    title: str
+    description: str
+    required_skills: list[str]
+
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
 
