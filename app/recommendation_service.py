@@ -2,6 +2,7 @@ import json
 from langchain_core.runnables import RunnableLambda
 
 def recommend_employee(openai_client, model_name, employees, task):
+    print("employees", employees)
     """Use a two-step LangChain pipeline to select the best employee."""
 
     employee_records = [
@@ -76,3 +77,37 @@ def recommend_employee(openai_client, model_name, employees, task):
         "reason": result["reason"],
         "matched_skills": result["matched_skills"],
     }
+
+def mapEmployeesToTasks(openai_client, model_name, employees, tasks):
+    mapping = {}
+    """
+    TODO: Implement this.
+    This function should take in an array of employees and an array of tasks, ideally, the length of employees should match the length of tasks.
+    For each task, it should recommend the best employee using the `recommend_employee` function. It is similar to the other function, 'recommend_employee', but this time, it should assign EVERY employee to a task from the list of tasks.
+    Implementation idea:
+    1. Iterate over the tasks.
+    2. For each task, call the `recommend_employee` function with the task and the list of employees.
+    3. Possibly map each task to an employee "rank" and sort everything by rank/score.
+    """
+    return mapping
+
+"""
+PROFICIENCY_MULTIPLIERS = {
+    "productive": {
+        "novice": 0.70,
+        "intermediate": 0.90,
+        "advanced": 1.10,
+        "expert": 1.20,
+    },
+    "knowledge_transfer": {
+        "novice": 1.30,
+        "intermediate": 1.10,
+        "advanced": 0.90,
+        "expert": 0.70,
+    },
+}
+
+def adjust_similarity(cosine_score, proficiency, mode):
+    multiplier = PROFICIENCY_MULTIPLIERS[mode][proficiency.lower()]
+    return cosine_score * multiplier
+"""
