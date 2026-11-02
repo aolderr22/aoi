@@ -14,7 +14,7 @@ service = BlobServiceClient(
     credential=credential,
 )
 
-container_name = os.environ["AZURE_STORAGE_CONTAINER_EMPLOYEES"]
+container_name = os.environ["AZURE_STORAGE_CONTAINER_TASKS"]
 
 container = None
 try:
@@ -25,10 +25,10 @@ except ResourceExistsError:
     print(f"Container already exists: {container_name}")
 
 # Path to your separate JSON file
-json_path = Path("data/employees.json")
+json_path = Path("data/tasks.json")
 
 # Choose the destination name in Azure Blob Storage
-blob_name = "employees/employees.json"
+blob_name = "tasks/tasks.json"
 
 # Upload the file
 blob = container.get_blob_client(blob_name)
