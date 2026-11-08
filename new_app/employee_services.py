@@ -1,5 +1,5 @@
-from prompts import (get_skill_task_similarity_prompt, get_skill_task_matching_prompt)
-from schemas import (SCORE_MAP, TaskEmployeeCandidate)
+from .prompts import (get_skill_task_similarity_prompt, get_skill_task_matching_prompt)
+from .schemas import (SCORE_MAP, TaskEmployeeCandidate)
 
 def match_task_to_skills(
     task_id: int,

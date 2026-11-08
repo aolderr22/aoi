@@ -10,6 +10,22 @@ SCORE_MAP = {
     "High": 2
 }
 
+class Employee(BaseModel):
+    id: int
+    name: str
+    position: str
+    skill_map: dict[str, str] = Field(
+        description="Employee skills mapped to their proficiency levels."
+    )
+
+class Task(BaseModel):
+    id: int
+    title: str
+    description: str
+    required_skills: list[str] = Field(
+        description="Technical skills required to complete the task."
+    )
+
 class SkillRelationship(BaseModel):
     skill_1: str
     skill_2: str
