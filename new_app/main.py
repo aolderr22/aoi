@@ -14,8 +14,10 @@ def main():
     azure_foundry_model_name = os.getenv("AZURE_FOUNDRY_MODEL_NAME")
     azure_foundry_embedding_model_name = os.getenv("AZURE_FOUNDRY_EMBEDDING_MODEL_NAME")
     account_url = os.environ["AZURE_STORAGE_ACCOUNT_URL"]
-    container_name = os.environ["AZURE_STORAGE_CONTAINER_EMPLOYEES"]
-    blob_name = os.environ["AZURE_STORAGE_BLOB_NAME_EMPLOYEES"]
+    container_name_employees = os.environ["AZURE_STORAGE_CONTAINER_EMPLOYEES"]
+    blob_name_employees = os.environ["AZURE_STORAGE_BLOB_NAME_EMPLOYEES"]
+    container_name_tasks = os.environ["AZURE_STORAGE_CONTAINER_TASKS"]
+    blob_name_tasks = os.environ["AZURE_STORAGE_BLOB_NAME_TASKS"]
 
     credential = DefaultAzureCredential()
 
@@ -23,8 +25,8 @@ def main():
         credential,
         "https://ai.azure.com/.default",
     )
-    employee_data = load_employee_data(account_url, container_name, blob_name)
-    task_data = load_task_data(account_url, container_name, blob_name)
+    employee_data = load_employee_data(account_url, container_name_employees, blob_name_employees)
+    task_data = load_task_data(account_url, container_name_tasks, blob_name_tasks)
 
     primary_language_model = get_primary_language_model(azure_foundry_model_name, azure_foundry_project_endpoint, token_provider)
     embeddings_model = get_embeddings_model(azure_foundry_embedding_model_name, azure_foundry_model_endpoint, token_provider)
