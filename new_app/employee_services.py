@@ -1,93 +1,65 @@
-import json
-from azure.storage.blob import BlobServiceClient
-from prompts import skill_matching_prompt
-from schemas import (TaskEmployeeCandidate, SCORE_MAP)
-
-def load_employee_data(credential, account_url, container_name, blob_name):
-    """Download employee JSON data from Azure Blob Storage."""
-
-    try:
-        service = BlobServiceClient(
-            account_url=account_url,
-            credential=credential,
-        )
-
-        blob = service.get_blob_client(
-            container=container_name,
-            blob=blob_name,
-        )
-
-        json_bytes = blob.download_blob().readall()
-        data = json.loads(json_bytes.decode("utf-8"))
-
-        # Accept either a list or {"employees": [...]}.
-        if isinstance(data, dict):
-            data = data.get("employees")
-
-        if not isinstance(data, list):
-            raise ValueError(
-                "Employee data must be a JSON list or an "
-                "object containing an 'employees' list."
-            )
-
-        return data
-
-    finally:
-        credential.close()
-
-def load_task_data(credential, account_url, container_name, blob_name):
-    """Download task JSON data from Azure Blob Storage."""
-
-    try:
-        service = BlobServiceClient(
-            account_url=account_url,
-            credential=credential,
-        )
-
-        blob = service.get_blob_client(
-            container=container_name,
-            blob=blob_name,
-        )
-
-        json_bytes = blob.download_blob().readall()
-        data = json.loads(json_bytes.decode("utf-8"))
-
-        # Accept either a list or {"tasks": [...]}.
-        if isinstance(data, dict):
-            data = data.get("tasks")
-
-        if not isinstance(data, list):
-            raise ValueError(
-                "Task data must be a JSON list or an "
-                "object containing a 'tasks' list."
-            )
-
-        return data
-
-    finally:
-        credential.close()
+from prompts import (get_skill_task_similarity_prompt, get_skill_task_matching_prompt)
+from schemas import (SCORE_MAP, TaskEmployeeCandidate)
 
 def match_task_to_skills(
-    task_id,
-    skills,
-    employee,
+    task_id: int,
+    skills: list[str],
+    employee: dict,
+    skill_similarity_investigator_agent,
     skill_matching_agent
 ) -> tuple[TaskEmployeeCandidate, int, int]:
 
+    # STEP 1: Investigate skill relationships
     try:
-        human_message = skill_matching_prompt.format_messages(
-            task_id=task_id,
-            required_skills=skills,
-            employee_id=employee["id"],
-            employee_skills=employee["skill_map"]
-        )
+        required_skill_names = {
+            skill.strip().casefold()
+            for skill in skills
+        }
+    
+        employee_skills_for_similarity = {
+            skill: proficiency
+            for skill, proficiency in employee["skill_map"].items()
+            if skill.strip().casefold() not in required_skill_names
+        }
+        
+        similarity_prompt = get_skill_task_similarity_prompt(skills, employee_skills_for_similarity)
 
-        result = skill_matching_agent.invoke({
-            "messages": human_message
+        similarity_result = skill_similarity_investigator_agent.invoke({
+            "messages": [
+                {"role": "user", "content": similarity_prompt}
+            ]
         })
 
+        similarity_report = similarity_result["structured_response"]
+
+        similarity_findings = similarity_report.model_dump_json(indent=2)
+
+    except Exception as e:
+        print(f"Skill similarity investigation failed: {e}")
+
+        # Continue matching without similarity findings.
+        similarity_findings = (
+            "No similarity findings are available. "
+            "Evaluate the employee using the available skill map "
+            "and demonstrated proficiency."
+        )
+
+    # STEP 2: Evaluate employee against task requirements
+    skill_matching_prompt = get_skill_task_matching_prompt(skills, employee, similarity_findings)
+
+    try:
+        result = skill_matching_agent.invoke({
+            "messages": [
+                {"role": "user", "content": skill_matching_prompt}
+            ]
+        })
+
+        structured_response = result["structured_response"]
+
+        print("Structured response:", structured_response)
+
         return (
-            result["structured_response"],
+            structured_response,
             task_id,
             employee["id"]
         )
@@ -106,13 +78,17 @@ def match_task_to_skills(
             employee["id"]
         )
 
-def rank_employee_task_matches(task_data, employee_data, skill_matching_agent):
+def rank_employee_task_matches(task_data, employee_data, skill_similarity_investigator_agent, skill_matching_agent):
     skill_matches = []
     for task in task_data:
+        print("task ", task)
         skills = ", ".join(task['required_skills'])
         for employee in employee_data:
-            skill_match = match_task_to_skills(task['id'], skills, employee, skill_matching_agent)
+            print("employee ", employee)
+            skill_match = match_task_to_skills(task['id'], skills, employee, skill_similarity_investigator_agent, skill_matching_agent)
             skill_matches.append(skill_match)
+            print("skill_match ", skill_match)
+
     learning_ranked = sorted(
         skill_matches,
         key=lambda x: SCORE_MAP[x[0].learning_opportunity]

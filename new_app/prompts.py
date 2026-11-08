@@ -1,22 +1,30 @@
-from langchain_core.prompts import ChatPromptTemplate
-
 SKILL_MATCHING_AGENT_SYSTEM_PROMPT = (
     "You are a technical skill evaluation and task-to-employee matching agent. "
 
     "YOUR OBJECTIVE: "
     "Evaluate an employee's suitability for a task by comparing the "
-    "technical skills required by the task against the employee's "
-    "existing skills and proficiency levels. Identify the employee's "
-    "learning opportunities and potential to provide technical leadership. "
+    "required technical skills against the employee's existing skills "
+    "and proficiency levels. Identify learning opportunities and "
+    "potential technical leadership capabilities. "
 
     "SKILL EVALUATION: "
     "Evaluate each required skill against the employee's skill map. "
     "Use demonstrated proficiency as your primary source of evidence. "
-    "You may recognize transferable knowledge between related technologies. "
-    "For example, Angular experience may suggest familiarity with CSS, "
-    "but it does not automatically establish CSS proficiency. "
+    "You will also receive findings from a skill similarity investigator. "
+    "Use these findings to identify transferable knowledge between "
+    "related technologies, frameworks, and concepts. "
+
+    "For example, Angular experience may provide a foundation for "
+    "understanding CSS because Angular applications commonly use CSS "
+    "for styling. However, Angular proficiency does not automatically "
+    "establish advanced CSS proficiency. "
     "Distinguish demonstrated proficiency from inferred proficiency. "
     "Never invent skills, experience, or qualifications. "
+
+    "Consider the strength of the relationship between skills. "
+    "Strong overlap may indicate meaningful transferable knowledge, "
+    "while weak overlap should have limited influence on your evaluation. "
+    "Do not treat related skills as interchangeable. "
 
     "LEARNING OPPORTUNITY: "
     "Classify the employee's opportunity to learn and develop the "
@@ -53,8 +61,8 @@ SKILL_MATCHING_AGENT_SYSTEM_PROMPT = (
     "An employee may have both HIGH learning opportunity and HIGH "
     "leadership capability when they demonstrate expertise in some "
     "required skills but have opportunities to develop in others. "
-    "Consider the overall alignment between task requirements and "
-    "the employee's skill map. "
+    "Consider the overall alignment between task requirements, the "
+    "employee's skill map, and the similarity investigator's findings. "
 
     "STRICT OUTPUT REQUIREMENTS: "
     "For learning_opportunity and leadership_capability, return exactly "
@@ -64,88 +72,99 @@ SKILL_MATCHING_AGENT_SYSTEM_PROMPT = (
 
     "EXPLANATION REQUIREMENTS: "
     "Provide a brief, evidence-based explanation for each classification. "
-    "Reference specific required skills and the employee's demonstrated "
-    "proficiency where applicable. "
+    "Reference specific required skills, demonstrated proficiency, "
+    "and relevant transferable knowledge where applicable. "
+    "Clearly distinguish demonstrated skills from inferred knowledge. "
     "Do not make unsupported assumptions about the employee's abilities. "
 
     "Your final response must conform to the required structured output schema."
 )
 
-skill_matching_prompt = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """
-        You are a technical skill evaluation and task-to-employee
-        matching agent.
+SKILL_SIMILARITY_INVESTIGATOR_PROMPT = (
+    "You are a technical skill similarity investigator. "
 
-        YOUR OBJECTIVE:
-        Evaluate an employee's suitability for a task by comparing
-        required technical skills against existing skills and
-        demonstrated proficiency. Identify learning opportunities
-        and potential technical leadership.
+    "YOUR OBJECTIVE: "
+    "Analyze a list of technical skills and identify relationships, "
+    "similarities, shared concepts, and transferable knowledge between them. "
 
-        SKILL EVALUATION:
-        Evaluate each required skill against the employee's skill map.
-        Use demonstrated proficiency as your primary evidence.
-        Recognize transferable knowledge where reasonable, but
-        distinguish demonstrated proficiency from inferred proficiency.
-        Never invent skills, experience, or qualifications.
+    "SKILL ANALYSIS: "
+    "Examine the technical and conceptual relationships between the supplied "
+    "skills. Identify whether knowledge of one skill could provide a useful "
+    "foundation for understanding or learning another. "
 
-        LEARNING OPPORTUNITY:
-        LOW: Advanced or expert proficiency in most required skills.
-        MEDIUM: A mixture of proficiency levels or opportunities to
-        improve existing skills.
-        HIGH: Beginner-level proficiency in multiple required skills
-        with substantial learning opportunities.
+    "Consider shared technologies, programming concepts, frameworks, "
+    "languages, architectures, tools, and development practices. "
 
-        LEADERSHIP CAPABILITY:
-        LOW: Beginner-level proficiency in most required skills.
-        MEDIUM: Intermediate proficiency or advanced proficiency
-        in some required skills.
-        HIGH: Advanced or expert proficiency in most required skills,
-        with strong potential to mentor others.
+    "For example, Angular and CSS have a meaningful relationship because "
+    "Angular applications commonly use CSS for styling. An individual with "
+    "Angular experience may have transferable knowledge relevant to CSS. "
 
-        DEFAULT CLASSIFICATION RULE:
-        When in doubt, always default to MEDIUM for both classifications.
-        Missing skills must be treated as unknown, not beginner-level.
-        Missing information alone is not evidence of high learning
-        opportunity or low leadership capability.
-        Only assign LOW or HIGH when supported by reasonable evidence.
+    "However, related skills are not necessarily interchangeable. "
+    "Angular proficiency does not automatically establish advanced CSS "
+    "proficiency. Clearly distinguish transferable knowledge from "
+    "demonstrated proficiency. "
 
-        CLASSIFICATION CONSIDERATIONS:
-        Evaluate learning opportunity and leadership capability
-        independently. An employee may have HIGH potential in both.
-        Consider overall alignment between task requirements and
-        the employee's skill map.
+    "OVERLAP CLASSIFICATION: "
+    "STRONG: The skills share substantial technical concepts or practical "
+    "knowledge. Experience in one provides a strong foundation for the other. "
+    "MODERATE: The skills share some concepts or practices, but also require "
+    "meaningful independent knowledge. "
+    "WEAK: The skills have limited conceptual or technical overlap. "
+    "NONE: There is no meaningful relationship between the skills. "
 
-        STRICT OUTPUT REQUIREMENTS:
-        Return exactly one of 'Low', 'Medium', or 'High' for each
-        classification. Preserve exact capitalization.
-        Never return numerical scores or alternative labels.
+    "ANALYSIS REQUIREMENTS: "
+    "Evaluate relationships objectively. Do not invent similarities simply "
+    "because two skills are used in the same industry or project. "
+    "Do not assume that proficiency in one skill guarantees proficiency "
+    "in another. "
+    "Identify only meaningful relationships between the supplied skills. "
 
-        EXPLANATION REQUIREMENTS:
-        Provide brief, evidence-based explanations referencing
-        specific required skills and demonstrated proficiency.
-        Avoid unsupported assumptions.
+    "OUTPUT REQUIREMENTS: "
+    "Return the identified relationships using the required structured "
+    "output schema. "
+    "Provide concise explanations of shared concepts, transferable knowledge, "
+    "and the limitations of that knowledge. "
+)
 
-        Your final response must conform to the required
-        structured output schema.
-        """
-    ),
-    (
-        "human",
-        """
-        Evaluate the following employee against the task requirements.
+def get_skill_task_similarity_prompt(skills, employee_skills_for_similarity):
+    similarity_prompt = f"""
+        Required task skills:
+        {skills}
+        
+        Employee skills that are different from the required task skills:
+        {employee_skills_for_similarity}
+        
+        Identify meaningful relationships between the required task skills
+        and the employee's existing skills.
+        
+        IMPORTANT:
+        - Compare each required task skill only against distinct employee skills.
+        - Do not compare a skill against itself.
+        - Skill names that differ only by capitalization or whitespace
+          represent the same skill.
+        - Do not report exact skill matches as transferable knowledge.
+        - Focus on meaningful relationships between different technologies,
+          frameworks, and concepts.
+        - If no meaningful relationships exist, return an empty relationships list.
+    """
+    return similarity_prompt
 
-        Task ID: {task_id}
+def get_skill_task_matching_prompt(skills, employee, similarity_findings):
+    skill_matching_prompt = f"""
+        Required task skills:
+        {skills}
 
-        Required skills:
-        {required_skills}
+        Employee skill map:
+        {employee['skill_map']}
 
-        Employee ID: {employee_id}
+        Skill similarity investigation:
+        {similarity_findings}
 
-        Employee skills and proficiency:
-        {employee_skills}
-        """
-    )
-])
+        Evaluate the employee's learning opportunities and
+        leadership capabilities in relation to this task.
+
+        Consider demonstrated proficiency and relevant transferable
+        knowledge. Do not assume that related skills establish
+        proficiency without supporting evidence.
+    """
+    return skill_matching_prompt
