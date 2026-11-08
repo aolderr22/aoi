@@ -81,13 +81,10 @@ def match_task_to_skills(
 def rank_employee_task_matches(task_data, employee_data, skill_similarity_investigator_agent, skill_matching_agent):
     skill_matches = []
     for task in task_data:
-        print("task ", task)
         skills = ", ".join(task['required_skills'])
         for employee in employee_data:
-            print("employee ", employee)
             skill_match = match_task_to_skills(task['id'], skills, employee, skill_similarity_investigator_agent, skill_matching_agent)
             skill_matches.append(skill_match)
-            print("skill_match ", skill_match)
 
     learning_ranked = sorted(
         skill_matches,

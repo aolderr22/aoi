@@ -33,13 +33,7 @@ def main():
     skill_similarity_investigator_agent = get_skill_similarity_investigator_agent(primary_language_model)
     skill_matching_agent = get_skill_matching_agent(primary_language_model)
 
-    print("task_data:", task_data)
-    print("employee_data:", employee_data)
-
     learning_ranked, leadership_ranked = rank_employee_task_matches(task_data, employee_data, skill_similarity_investigator_agent, skill_matching_agent)
-
-    print("Learning ranked:", learning_ranked)
-    print("Leadership ranked:", leadership_ranked)
 
     return 0
 
